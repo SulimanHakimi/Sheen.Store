@@ -7,6 +7,10 @@ import { Star } from 'lucide-react';
 import connectDB from '../../lib/db';
 import Product from '../../lib/models/Product';
 
+// Force dynamic rendering to prevent build-time database connection
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 async function getFeaturedProducts() {
     await connectDB();
     const products = await Product.find({ isFeatured: true }).limit(8).lean();
