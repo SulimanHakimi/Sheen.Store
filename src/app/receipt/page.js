@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Navbar from '../../components/Navbar';
 import useCartStore from '../../../store/useCartStore';
 import Link from 'next/link';
 import confetti from 'canvas-confetti';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function ReceiptPage() {
+function ReceiptContent() {
     const { lastOrder, clearCart } = useCartStore();
     const router = useRouter();
     const [mounted, setMounted] = useState(false);
@@ -135,5 +135,13 @@ export default function ReceiptPage() {
                 </div>
             </div>
         </main>
+    );
+}
+
+export default function ReceiptPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center h-screen">Loading...</div>}>
+            <ReceiptContent />
+        </Suspense>
     );
 }

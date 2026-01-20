@@ -9,8 +9,19 @@ function AdminDashboard() {
     const [recentOrders, setRecentOrders] = useState([]);
 
     useEffect(() => {
-        // Fetch valid dashboard data (placeholders for now)
-        // You can implement API calls to /api/admin/stats here
+        fetch('/api/admin/stats')
+            .then(res => res.json())
+            .then(data => {
+                if (data.orders !== undefined) {
+                    setStats({
+                        orders: data.orders,
+                        revenue: data.revenue,
+                        products: data.products
+                    });
+                    setRecentOrders(data.recentOrders || []);
+                }
+            })
+            .catch(err => console.error(err));
     }, []);
 
     return (
@@ -40,10 +51,39 @@ function AdminDashboard() {
                     </div>
                 </div>
 
-                {/* Recent Orders Table Placeholder */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                {/* Recent Orders Table */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 overflow-x-auto">
                     <h2 className="text-xl font-bold mb-4 border-b pb-4">سفارشات اخیر</h2>
-                    <p className="text-gray-500 text-center py-8">در حال بارگذاری اطلاعات...</p>
+                    {recentOrders.length > 0 ? (
+                        <table className="w-full text-right text-sm">
+                            <thead>
+                                <tr className="text-gray-500 border-b">
+                                    <th className="pb-3 text-right">شماره سفارش</th>
+                                    <th className="pb-3 text-right">مشتری</th>
+                                    <th className="pb-3 text-right">مبلغ</th>
+                                    <th className="pb-3 text-right">وضعیت پرداخت</th>
+                                    <th className="pb-3 text-right">تاریخ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {recentOrders.map(order => (
+                                    <tr key={order._id} className="border-b last:border-0 hover:bg-gray-50">
+                                        <td className="py-3 font-medium">{order.id}</td>
+                                        <td className="py-3">{order.customer?.name}</td>
+                                        <td className="py-3 font-bold">{order.total?.toLocaleString()}</td>
+                                        <td className="py-3">
+                                            <span className={`px-2 py-1 rounded text-xs ${order.paymentMethod === 'cash' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+                                                {order.paymentMethod}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 text-gray-500">{order.date}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <p className="text-gray-500 text-center py-8">هیچ سفارشی یافت نشد.</p>
+                    )}
                 </div>
             </div>
         </main>
