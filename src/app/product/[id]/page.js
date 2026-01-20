@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import useCartStore from '../../../../store/useCartStore';
 import toast from 'react-hot-toast';
-import Navbar from '../../../../components/Navbar';
+import Navbar from '../../../components/Navbar';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';

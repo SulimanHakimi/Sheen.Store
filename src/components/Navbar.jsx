@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ShoppingBag, Menu, X, Heart, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import useCartStore from '../store/useCartStore';
+import useCartStore from '../../store/useCartStore';
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);

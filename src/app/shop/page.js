@@ -2,8 +2,8 @@
 
 import { Suspense, useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Navbar from '../../../components/Navbar';
-import ProductCard from '../../../components/ProductCard';
+import Navbar from '../../components/Navbar';
+import ProductCard from '../../components/ProductCard';
 
 
 function ShopContent() {

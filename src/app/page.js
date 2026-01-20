@@ -1,7 +1,7 @@
 
-import Navbar from '../../components/Navbar';
-import Reveal from '../../components/Reveal';
-import ProductCard from '../../components/ProductCard';
+import Navbar from '../components/Navbar';
+import Reveal from '../components/Reveal';
+import ProductCard from '../components/ProductCard';
 import Link from 'next/link';
 import { Star } from 'lucide-react';
 import connectDB from '../../lib/db';

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Navbar from '../../../components/Navbar';
+import Navbar from '../../components/Navbar';
 import useCartStore from '../../../store/useCartStore';
 import { ShoppingBag, X } from 'lucide-react';
 import toast from 'react-hot-toast';

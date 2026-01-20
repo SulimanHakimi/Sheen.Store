@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Navbar from '../../../components/Navbar';
+import Navbar from '../../components/Navbar';
 import useCartStore from '../../../store/useCartStore';
 import Link from 'next/link';
 import confetti from 'canvas-confetti';
@@ -19,10 +19,12 @@ export default function ReceiptPage() {
         if (!lastOrder) {
             router.push('/');
         } else {
+            // Always clear cart when showing receipt
+            clearCart();
+
             // Check for payment success callback
             const paymentStatus = searchParams.get('payment');
             if (paymentStatus === 'success') {
-                clearCart();
                 // Trigger celebration confetti
                 const duration = 3 * 1000;
                 const animationEnd = Date.now() + duration;

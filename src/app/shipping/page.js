@@ -1,7 +1,7 @@
 'use client';
 
-import Navbar from '../../../components/Navbar';
-import Reveal from '../../../components/Reveal';
+import Navbar from '../../components/Navbar';
+import Reveal from '../../components/Reveal';
 import { Truck, RotateCcw, Clock } from 'lucide-react';
 
 export default function Shipping() {

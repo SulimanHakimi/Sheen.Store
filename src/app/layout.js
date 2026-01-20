@@ -1,9 +1,9 @@
 import './globals.css';
 
-import Footer from '../../components/Footer';
+import Footer from '../components/Footer';
 import { Toaster } from 'react-hot-toast';
 
-import CookiePopup from '../../components/CookiePopup';
+import CookiePopup from '../components/CookiePopup';
 
 export const metadata = {
     metadataBase: new URL('https://sheenstore.com'),
@@ -31,14 +31,18 @@ export const metadata = {
     manifest: '/site.webmanifest',
 };
 
+import NextAuthProvider from '../components/NextAuthProvider';
+
 export default function RootLayout({ children }) {
     return (
         <html lang="fa" dir="rtl">
             <body className="min-h-screen flex flex-col">
-                <Toaster position="top-center" toastOptions={{ duration: 3000, style: { fontFamily: 'Vazirmatn, Tahoma, Arial, sans-serif' } }} />
-                {children}
-                <CookiePopup />
-                <Footer />
+                <NextAuthProvider>
+                    <Toaster position="top-center" toastOptions={{ duration: 3000, style: { fontFamily: 'Vazirmatn, Tahoma, Arial, sans-serif' } }} />
+                    {children}
+                    <CookiePopup />
+                    <Footer />
+                </NextAuthProvider>
             </body>
         </html>
     );

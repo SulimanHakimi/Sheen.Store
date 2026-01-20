@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Navbar from '../../../components/Navbar';
-import Reveal from '../../../components/Reveal';
+import Navbar from '../../components/Navbar';
+import Reveal from '../../components/Reveal';
 import { Mail, Phone, MapPin } from 'lucide-react';
 import { FaInstagram, FaTelegram, FaWhatsapp, FaFacebookF } from 'react-icons/fa';
 import toast from 'react-hot-toast';

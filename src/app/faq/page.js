@@ -1,7 +1,7 @@
 'use client';
 
-import Navbar from '../../../components/Navbar';
-import Reveal from '../../../components/Reveal';
+import Navbar from '../../components/Navbar';
+import Reveal from '../../components/Reveal';
 import { useState } from 'react';
 import { Plus, Minus } from 'lucide-react';
 

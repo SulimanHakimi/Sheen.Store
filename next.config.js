@@ -11,7 +11,6 @@ const nextConfig = {
     // Add HTTP agent configuration for better network handling
     httpAgentOptions: {
         keepAlive: true,
-        timeout: 60000,
     },
 };
 

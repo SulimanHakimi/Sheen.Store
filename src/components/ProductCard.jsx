@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ShoppingBag, Heart } from 'lucide-react';
 import toast from 'react-hot-toast';
-import useCartStore from '../store/useCartStore';
+import useCartStore from '../../store/useCartStore';
 import Reveal from './Reveal';
 
 export default function ProductCard({ product, index = 0 }) {
