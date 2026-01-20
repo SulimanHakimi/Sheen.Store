@@ -4,19 +4,40 @@ import { useEffect, useState } from 'react';
 import Navbar from '../../../components/Navbar';
 import useCartStore from '../../../store/useCartStore';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import confetti from 'canvas-confetti';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function ReceiptPage() {
-    const { lastOrder } = useCartStore();
+    const { lastOrder, clearCart } = useCartStore();
     const router = useRouter();
     const [mounted, setMounted] = useState(false);
+
+    const searchParams = useSearchParams();
 
     useEffect(() => {
         setMounted(true);
         if (!lastOrder) {
             router.push('/');
+        } else {
+            // Check for payment success callback
+            const paymentStatus = searchParams.get('payment');
+            if (paymentStatus === 'success') {
+                clearCart();
+                // Trigger celebration confetti
+                const duration = 3 * 1000;
+                const animationEnd = Date.now() + duration;
+                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+                const random = (min, max) => Math.random() * (max - min) + min;
+                const interval = setInterval(() => {
+                    const timeLeft = animationEnd - Date.now();
+                    if (timeLeft <= 0) return clearInterval(interval);
+                    const particleCount = 50 * (timeLeft / duration);
+                    confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } }));
+                    confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } }));
+                }, 250);
+            }
         }
-    }, [lastOrder, router]);
+    }, [lastOrder, router, searchParams, clearCart]);
 
     if (!mounted || !lastOrder) return null;
 

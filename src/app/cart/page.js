@@ -4,7 +4,6 @@ import Link from 'next/link';
 import Navbar from '../../../components/Navbar';
 import useCartStore from '../../../store/useCartStore';
 import { useState } from 'react';
-import confetti from 'canvas-confetti';
 import { useRouter } from 'next/navigation';
 
 export default function CartPage() {
@@ -12,15 +11,19 @@ export default function CartPage() {
     const { cartItems, removeFromCart, updateQty, itemsPrice, itemsCount, clearCart, setLastOrder } = useCartStore();
     const router = useRouter();
 
+    const [isLoading, setIsLoading] = useState(false);
     const [showCheckout, setShowCheckout] = useState(false);
     const [step, setStep] = useState(1);
+    const [error, setError] = useState(''); // validation error state
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
         address: '',
         city: '',
+        country: 'Afghanistan', // Default country
+        phoneCode: '+93', // Default phone code
         deliveryMethod: 'normal', // default to normal delivery
-        paymentMethod: 'door', // default to door payment
+        paymentMethod: 'hesabpay', // default to hesabpay (real payment)
     });
 
     // Handle input changes for the form
@@ -31,15 +34,22 @@ export default function CartPage() {
 
     // Confetti animation and order finalisation
     const handleCheckout = async () => {
+        setIsLoading(true);
         // Determine shipping cost based on selected delivery method
-        const shippingCost = formData.deliveryMethod === 'fast' ? 150 : 100;
+        let shippingCost = 0;
+        if (formData.deliveryMethod === 'fast') shippingCost = 150;
+        else if (formData.deliveryMethod === 'normal') shippingCost = 100;
+
         const subtotal = itemsPrice();
         const total = subtotal + shippingCost;
         const orderData = {
             id: 'SHEEN-' + Math.floor(100000 + Math.random() * 900000),
             date: new Date().toLocaleDateString('fa-IR'),
             items: [...cartItems],
-            customer: { ...formData },
+            customer: {
+                ...formData,
+                phone: `${formData.phoneCode} ${formData.phone}`, // Combine code and number
+            },
             subtotal,
             shipping: shippingCost,
             total,
@@ -57,51 +67,51 @@ export default function CartPage() {
             if (!res.ok) throw new Error('Failed to save order');
         } catch (err) {
             console.error(err);
+            setIsLoading(false);
             // You could show a toast here
             return;
         }
 
         // Store order for receipt page
         setLastOrder(orderData);
-        clearCart();
 
-        // Trigger confetti animation
-        const duration = 3 * 1000;
-        const animationEnd = Date.now() + duration;
-        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-        const random = (min, max) => Math.random() * (max - min) + min;
-        const interval = setInterval(() => {
-            const timeLeft = animationEnd - Date.now();
-            if (timeLeft <= 0) return clearInterval(interval);
-            const particleCount = 50 * (timeLeft / duration);
-            confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } }));
-            confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } }));
-        }, 250);
+        // Store order for receipt page
+        setLastOrder(orderData);
 
-        // Redirect based on payment method
-        if (formData.paymentMethod === 'hesabpay') {
-            // Initiate payment via hesabpay API
-            try {
-                const payRes = await fetch('/api/hesabpay', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(orderData),
-                });
-                const payData = await payRes.json();
-                if (payData.paymentUrl) {
-                    router.push(payData.paymentUrl);
-                    return;
-                }
-            } catch (e) {
-                console.error('HesabPay error', e);
+        if (formData.paymentMethod === 'cash') {
+            // Cash payment - immediate success
+            // Redirect to receipt with success flag to trigger clearCart and confetti
+            router.push(`/receipt?orderId=${orderData.id}&payment=success`);
+            return;
+        }
+
+        // Online Payment Flow (HesabPay)
+        try {
+            const payRes = await fetch('/api/hesabpay', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData),
+            });
+            const payData = await payRes.json();
+
+            if (payData.paymentUrl) {
+                // Redirect to HesabPay - DO NOT clear cart yet (wait for success callback)
+                window.location.href = payData.paymentUrl;
+                // Don't set isLoading(false) here, as we are navigating away
+                return;
+            } else {
+                console.error('HesabPay creation failed', payData);
+                alert('خطا در ارتباط با درگاه پرداخت. لطفاً دوباره تلاش کنید.');
+                setIsLoading(false);
             }
-            // Fallback to receipt if payment URL not obtained
-            router.push('/receipt');
-        } else {
-            // Door payment – go straight to receipt
-            router.push('/receipt');
+        } catch (e) {
+            console.error('HesabPay error', e);
+            alert('خطا در برقراری ارتباط با پرداخت');
+            setIsLoading(false);
         }
     };
+
+
 
     // Empty cart screen
     if (cartItems.length === 0) {
@@ -134,12 +144,87 @@ export default function CartPage() {
 
                         {step === 1 && (
                             <div className="space-y-5">
-                                <input name="name" value={formData.name} onChange={handleInputChange} placeholder="نام کامل" className="w-full border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-accent-dark transition" />
-                                <input name="phone" value={formData.phone} onChange={handleInputChange} placeholder="شماره تماس" className="w-full border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-accent-dark transition" />
-                                <input name="address" value={formData.address} onChange={handleInputChange} placeholder="آدرس دقیق" className="w-full border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-accent-dark transition" />
-                                <input name="city" value={formData.city} onChange={handleInputChange} placeholder="شهر/استان" className="w-full border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-accent-dark transition" />
+                                <input
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={(e) => { handleInputChange(e); if (error) setError(''); }}
+                                    placeholder="نام کامل *"
+                                    className={`w-full border rounded-lg px-4 py-3 focus:outline-none transition ${error && !formData.name.trim() ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:border-accent-dark'}`}
+                                />
+
+                                {/* Phone Number with Country Code */}
+                                <div className="flex gap-2" dir="ltr">
+                                    <select
+                                        name="phoneCode"
+                                        value={formData.phoneCode}
+                                        onChange={handleInputChange}
+                                        className="border border-gray-200 rounded-lg px-2 py-3 focus:outline-none focus:border-accent-dark transition bg-white w-24 text-sm"
+                                    >
+                                        <option value="+93">+93 (AF)</option>
+                                        <option value="+1">+1 (US)</option>
+                                        <option value="+49">+49 (DE)</option>
+                                        <option value="+44">+44 (UK)</option>
+                                        <option value="+971">+971 (UAE)</option>
+                                        <option value="+92">+92 (PK)</option>
+                                        <option value="+91">+91 (IN)</option>
+                                        <option value="+98">+98 (IR)</option>
+                                    </select>
+                                    <input
+                                        name="phone"
+                                        value={formData.phone}
+                                        onChange={(e) => { handleInputChange(e); if (error) setError(''); }}
+                                        placeholder="Mobile Number *"
+                                        className={`flex-grow border rounded-lg px-4 py-3 focus:outline-none transition text-right ${error && !formData.phone.trim() ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:border-accent-dark'}`}
+                                    />
+                                </div>
+
+                                <input
+                                    name="address"
+                                    value={formData.address}
+                                    onChange={(e) => { handleInputChange(e); if (error) setError(''); }}
+                                    placeholder="آدرس دقیق *"
+                                    className={`w-full border rounded-lg px-4 py-3 focus:outline-none transition ${error && !formData.address.trim() ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:border-accent-dark'}`}
+                                />
+
+                                <div className="flex gap-4">
+                                    <input
+                                        name="city"
+                                        value={formData.city}
+                                        onChange={(e) => { handleInputChange(e); if (error) setError(''); }}
+                                        placeholder="شهر/استان *"
+                                        className={`w-1/2 border rounded-lg px-4 py-3 focus:outline-none transition ${error && !formData.city.trim() ? 'border-red-500 bg-red-50' : 'border-gray-200 focus:border-accent-dark'}`}
+                                    />
+                                    <select
+                                        name="country"
+                                        value={formData.country}
+                                        onChange={handleInputChange}
+                                        className="w-1/2 border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-accent-dark transition bg-white"
+                                    >
+                                        <option value="Afghanistan">Afghanistan</option>
+                                        <option value="United States">United States</option>
+                                        <option value="Germany">Germany</option>
+                                        <option value="United Kingdom">United Kingdom</option>
+                                        <option value="UAE">UAE</option>
+                                        <option value="Pakistan">Pakistan</option>
+                                        <option value="India">India</option>
+                                        <option value="Iran">Iran</option>
+                                    </select>
+                                </div>
+
+                                {error && <p className="text-red-500 text-sm font-bold text-center">{error}</p>}
+
                                 <div className="flex justify-end mt-8">
-                                    <button onClick={() => setStep(2)} className="bg-accent-dark text-white px-8 py-3 rounded-lg font-bold hover:bg-black transition shadow-md">
+                                    <button
+                                        onClick={() => {
+                                            if (!formData.name.trim() || !formData.phone.trim() || !formData.address.trim() || !formData.city.trim()) {
+                                                setError('لطفاً تمام فیلدهای ستاره‌دار را پر کنید.');
+                                                return;
+                                            }
+                                            setError('');
+                                            setStep(2);
+                                        }}
+                                        className="bg-accent-dark text-white px-8 py-3 rounded-lg font-bold hover:bg-black transition shadow-md"
+                                    >
                                         ادامه
                                     </button>
                                 </div>
@@ -156,6 +241,10 @@ export default function CartPage() {
                                     <input type="radio" name="deliveryMethod" value="normal" checked={formData.deliveryMethod === 'normal'} onChange={handleInputChange} className="ml-3 accent-accent-dark" />
                                     <span className="font-medium">تحویل عادی (100 افغانی)</span>
                                 </label>
+                                <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-accent-dark transition">
+                                    <input type="radio" name="deliveryMethod" value="pickup" checked={formData.deliveryMethod === 'pickup'} onChange={handleInputChange} className="ml-3 accent-accent-dark" />
+                                    <span className="font-medium">دریافت حضوری از فروشگاه (رایگان)</span>
+                                </label>
                                 <div className="flex justify-between mt-8">
                                     <button onClick={() => setStep(1)} className="text-gray-500 hover:text-accent-dark font-medium">بازگشت</button>
                                     <button onClick={() => setStep(3)} className="bg-accent-dark text-white px-8 py-3 rounded-lg font-bold hover:bg-black transition shadow-md">
@@ -167,14 +256,22 @@ export default function CartPage() {
                         {/* 3. Payment Method */}
                         {step === 3 && (
                             <div className="space-y-4">
-                                <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-accent-dark transition">
-                                    <input type="radio" name="paymentMethod" value="door" checked={formData.paymentMethod === 'door'} onChange={handleInputChange} className="ml-3 accent-accent-dark" />
-                                    <span className="font-medium">پرداخت درب منزل</span>
-                                </label>
-                                <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-accent-dark transition">
+                                <label className={`p-4 border rounded-lg flex items-center cursor-pointer transition ${formData.paymentMethod === 'hesabpay' ? 'border-accent-dark bg-gray-50' : 'border-gray-200'}`}>
                                     <input type="radio" name="paymentMethod" value="hesabpay" checked={formData.paymentMethod === 'hesabpay'} onChange={handleInputChange} className="ml-3 accent-accent-dark" />
-                                    <span className="font-medium">حساب پرداخت</span>
+                                    <div>
+                                        <span className="font-bold text-accent-dark block">پرداخت آنلاین (HesabPay)</span>
+                                        <span className="text-xs text-gray-500">پرداخت امن با کارت‌های بانکی و حساب پی</span>
+                                    </div>
                                 </label>
+
+                                <label className={`p-4 border rounded-lg flex items-center cursor-pointer transition ${formData.paymentMethod === 'cash' ? 'border-accent-dark bg-gray-50' : 'border-gray-200'}`}>
+                                    <input type="radio" name="paymentMethod" value="cash" checked={formData.paymentMethod === 'cash'} onChange={handleInputChange} className="ml-3 accent-accent-dark" />
+                                    <div>
+                                        <span className="font-bold text-accent-dark block">پرداخت نقدی (Cash)</span>
+                                        <span className="text-xs text-gray-500">پرداخت هنگام تحویل یا دریافت حضوری</span>
+                                    </div>
+                                </label>
+
                                 <div className="flex justify-between mt-8">
                                     <button onClick={() => setStep(2)} className="text-gray-500 hover:text-accent-dark font-medium">بازگشت</button>
                                     <button onClick={() => setStep(4)} className="bg-accent-dark text-white px-8 py-3 rounded-lg font-bold hover:bg-black transition shadow-md">
@@ -189,10 +286,14 @@ export default function CartPage() {
                                 <div className="bg-gray-50 p-6 rounded-lg space-y-3">
                                     <h3 className="text-base font-bold mb-4 border-b border-gray-200 pb-2">اطلاعات تحویل</h3>
                                     <div className="flex justify-between"><span className="text-gray-500">نام:</span> <span className="font-medium">{formData.name}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-500">تلفن:</span> <span className="font-medium">{formData.phone}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-500">آدرس:</span> <span className="font-medium">{formData.address}, {formData.city}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-500">روش ارسال:</span> <span className="font-medium">{formData.deliveryMethod === 'fast' ? 'سریع' : 'عادی'}</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-500">روش پرداخت:</span> <span className="font-medium">{formData.paymentMethod === 'door' ? 'درب منزل' : 'حساب پرداخت'}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-500">تلفن:</span> <span className="font-medium">{formData.phoneCode} {formData.phone}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-500">آدرس:</span> <span className="font-medium">{formData.address}, {formData.city}, {formData.country}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-500">روش ارسال:</span> <span className="font-medium">
+                                        {formData.deliveryMethod === 'fast' ? 'سریع' : formData.deliveryMethod === 'normal' ? 'عادی' : 'دریافت حضوری'}
+                                    </span></div>
+                                    <div className="flex justify-between"><span className="text-gray-500">روش پرداخت:</span> <span className="font-medium">
+                                        {formData.paymentMethod === 'cash' ? 'نقدی (Cash)' : 'آنلاین (HesabPay)'}
+                                    </span></div>
                                 </div>
 
                                 <div className="bg-gray-50 p-6 rounded-lg space-y-3">
@@ -203,18 +304,30 @@ export default function CartPage() {
                                     </div>
                                     <div className="flex justify-between text-gray-600">
                                         <span>هزینه ارسال:</span>
-                                        <span>{formData.deliveryMethod === 'fast' ? '150' : '100'} افغانی</span>
+                                        <span>
+                                            {formData.deliveryMethod === 'fast' ? '150' : formData.deliveryMethod === 'normal' ? '100' : '0'} افغانی
+                                        </span>
                                     </div>
                                     <div className="flex justify-between text-lg font-bold text-accent-dark pt-3 border-t border-gray-200 mt-2">
                                         <span>مبلغ قابل پرداخت:</span>
-                                        <span>{(itemsPrice() + (formData.deliveryMethod === 'fast' ? 150 : 100)).toLocaleString()} افغانی</span>
+                                        <span>{(itemsPrice() + (formData.deliveryMethod === 'fast' ? 150 : formData.deliveryMethod === 'normal' ? 100 : 0)).toLocaleString()} افغانی</span>
                                     </div>
                                 </div>
 
                                 <div className="flex justify-between mt-8">
                                     <button onClick={() => setStep(3)} className="text-gray-500 hover:text-accent-dark font-medium">بازگشت</button>
-                                    <button onClick={handleCheckout} className="bg-accent-dark text-white px-8 py-3 rounded-lg font-bold hover:bg-black transition shadow-md w-1/2">
-                                        ثبت سفارش نهایی
+                                    <button onClick={handleCheckout} disabled={isLoading} className="bg-accent-dark text-white px-8 py-3 rounded-lg font-bold hover:bg-black transition shadow-md w-1/2 flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed">
+                                        {isLoading ? (
+                                            <>
+                                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                درحال پردازش...
+                                            </>
+                                        ) : (
+                                            'ثبت سفارش نهایی'
+                                        )}
                                     </button>
                                 </div>
                             </div>
