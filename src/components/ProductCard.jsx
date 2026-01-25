@@ -37,7 +37,7 @@ export default function ProductCard({ product, index = 0 }) {
                     </div>
 
                     {/* Badges */}
-                    {index === 1 && (
+                    {product.isFeatured && (
                         <div className="absolute top-4 left-4 bg-white rounded-full w-12 h-12 flex items-center justify-center text-[10px] font-bold uppercase tracking-widest z-10">
                             New In
                         </div>
