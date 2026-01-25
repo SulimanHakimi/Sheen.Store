@@ -2,6 +2,24 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 
+// Load .env.local manually since dotenv might not be installed
+const envPath = path.resolve(process.cwd(), '.env.local');
+if (fs.existsSync(envPath)) {
+    const envFile = fs.readFileSync(envPath, 'utf8');
+    envFile.split('\n').forEach(line => {
+        const parts = line.split('=');
+        if (parts.length >= 2) {
+            const key = parts[0].trim();
+            let val = parts.slice(1).join('=').trim();
+            // Remove quotes if present
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                val = val.slice(1, -1);
+            }
+            process.env[key] = val;
+        }
+    });
+}
+
 const productsData = [
     {
         name: 'شال نخی کرم',
@@ -131,7 +149,7 @@ const productsData = [
     },
     {
         name: 'کفش راحتی طبی',
-        category: 'کفش',
+        category: 'کیف',
         price: 3200,
         description: 'کفش راحتی با کفی طبی، مناسب برای پیاده‌روی‌های طولانی.',
         images: ['/images/shoes.png'],
@@ -164,6 +182,33 @@ const productsData = [
         images: ['/images/belt.png'],
         stock: 40,
         isFeatured: false
+    },
+    {
+        name: 'عبای مخمل سبز زمردی',
+        category: 'عبایا',
+        price: 7800,
+        description: 'این عبای مخمل مشکی با گلدوزی‌های کریستالی سبز زمردی و نقره‌ای، ترکیبی بی‌نظیر از اصالت و شکوه را به نمایش می‌گذارد. طرح یقه باز و کار شده‌ی آن، جلوه‌ای سلطنتی به استایل شما می‌بخشد که برای مجالس خاص ایده‌آل است. پارچه مخمل درجه یک با ریزش فوق‌العاده، راحتی و زیبایی را همزمان تضمین می‌کند. یک انتخاب لوکس برای بانوان شیک‌پوش.',
+        images: ['/images/velvet-green-crystal-abaya.jpg'],
+        stock: 5,
+        isFeatured: true
+    },
+    {
+        name: 'پیراهن کریستالی موج',
+        category: 'عبایا',
+        price: 6900,
+        description: 'طراحی منحصر به فرد با خطوط موج‌دار کریستالی نقره‌ای روی زمینه مشکی، این پیراهن را به اثری هنری تبدیل کرده است. یقه ایستاده و آستین‌های کلوش با تزیینات ظریف، وقار و متانت را در کنار درخشش خیره‌کننده به ارمغان می‌‌آورد. مناسب برای مهمانی‌های شبانه که می‌خواهید مرکز توجه باشید. دوختی بسیار تمیز و با کیفیت.',
+        images: ['/images/black-wave-crystal-dress.jpg'],
+        stock: 8,
+        isFeatured: true
+    },
+    {
+        name: 'پیراهن مخمل زرشکی فاخر',
+        category: 'عبایا',
+        price: 8500,
+        description: 'پیراهن مخمل زرشکی با تزیینات سنگ‌دوزی طلایی و نقره‌ای در قسمت یقه و سینه، نمادی از تجمل و زیبایی کلاسیک است. رنگ گرم زرشکی در کنار درخشش کریستال‌ها، هارمونی جذابی ایجاد کرده که چشم‌ها را خیره می‌کند. آستین‌های کار شده و برش دقیق لباس، اندام را کشیده‌تر و زیباتر نشان می‌دهد. انتخابی عالی برای مراسم‌های رسمی.',
+        images: ['/images/burgundy-velvet-dress-full.jpg', '/images/burgundy-velvet-dress-detail.jpg'],
+        stock: 4,
+        isFeatured: true
     }
 ];
 
@@ -185,15 +230,12 @@ async function seedAndExport() {
     try {
         await mongoose.connect(MONGODB_URI);
         console.log('Connected to MongoDB');
+        console.log('Using URI:', MONGODB_URI.split('@')[1] || MONGODB_URI); // Log part of URI to confirm
 
-        // Check if DB is empty
-        const count = await Product.countDocuments();
-        if (count === 0) {
-            console.log('Database is empty. Seeding...');
-            await Product.deleteMany({}); // Just in case
-            await Product.create(productsData);
-            console.log('Database seeded.');
-        }
+        console.log('Seeding database...');
+        await Product.deleteMany({});
+        await Product.create(productsData);
+        console.log(`Database seeded with ${productsData.length} products.`);
 
         const products = await Product.find({}).lean();
 
